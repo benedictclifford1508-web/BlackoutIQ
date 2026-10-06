@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BlackoutIQ – Power Outage Prediction</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=Sora:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0b1522;--p:#101d2d;--p2:#142437;--b:#22344a;--t:#e8eef6;--m:#8397ad;--br:#4aa3ff;--g:#34d399;--y:#f5a524;--r:#ef5350;--h:'Sora','Segoe UI',sans-serif}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font:14px/1.55 'IBM Plex Sans','Segoe UI',Arial,sans-serif;background:var(--bg);color:var(--t);min-height:100vh}
+#bg{position:fixed;inset:0;width:100%;height:100%;z-index:0}
+.wrap{position:relative;z-index:1}
+header{display:flex;justify-content:space-between;align-items:center;padding:14px 36px;border-bottom:1px solid var(--b);background:rgba(11,21,34,.78);backdrop-filter:blur(10px);position:sticky;top:0;z-index:5}
+.logo{display:flex;align-items:center;gap:12px}
+.logo svg{width:44px;height:44px;filter:drop-shadow(0 0 10px rgba(74,163,255,.45))}
+.wm{font:700 23px/1 var(--h);letter-spacing:-.03em}
+.wm b{background:linear-gradient(120deg,#8cc6ff,#3b82f6);-webkit-background-clip:text;background-clip:text;color:transparent;font-weight:700}
+.tag{font-size:11.5px;color:var(--m);margin-top:4px;letter-spacing:.02em}
+.live{display:flex;align-items:center;gap:10px;font-size:12.5px;color:var(--m)}
+.live i{width:8px;height:8px;border-radius:50%;background:var(--g);box-shadow:0 0 0 0 rgba(52,211,153,.6);animation:ping 2s infinite}
+@keyframes ping{70%{box-shadow:0 0 0 9px rgba(52,211,153,0)}100%{box-shadow:0 0 0 0 rgba(52,211,153,0)}}
+main{max-width:1380px;margin:auto;padding:30px 28px 10px}
+.intro h1{font:600 30px/1.2 var(--h);letter-spacing:-.025em}
+.intro p{color:var(--m);max-width:620px;margin-top:8px}
+.cities{display:flex;flex-wrap:wrap;gap:8px;margin:22px 0 24px}
+.cities button{font:500 13px 'IBM Plex Sans',sans-serif;padding:9px 18px;border-radius:999px;border:1px solid var(--b);background:rgba(16,29,45,.8);color:var(--m);cursor:pointer;transition:.2s}
+.cities button:hover{color:var(--t);border-color:#3b5877}
+.cities button.on{color:#fff;border-color:var(--br);background:rgba(74,163,255,.16);box-shadow:0 0 18px rgba(74,163,255,.2)}
+button:focus-visible,.tg:focus-visible{outline:2px solid var(--br);outline-offset:2px}
+.grid{display:grid;grid-template-columns:1.25fr .75fr;gap:22px}
+.col{display:flex;flex-direction:column;gap:22px;min-width:0}
+.panel{background:linear-gradient(160deg,rgba(20,36,55,.92),rgba(14,26,41,.92));border:1px solid var(--b);border-radius:14px;padding:22px 24px}
+.hd{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:16px}
+.hd h3{font:600 15px var(--h);letter-spacing:-.01em}
+.hd span{color:var(--m);font-size:12.5px}
+.hero{display:grid;grid-template-columns:270px 1fr;gap:28px;align-items:center;border-radius:18px;padding:26px 28px;position:relative;overflow:hidden}
+.hero:before{content:"";position:absolute;inset:0;background:repeating-linear-gradient(0deg,transparent 0 3px,rgba(74,163,255,.035) 3px 4px);pointer-events:none}
+.city{font:600 28px var(--h);letter-spacing:-.03em}
+.reg{color:var(--m);font-size:13px}
+.gauge{width:100%;max-width:270px}
+.gauge text{font-family:var(--h);text-anchor:middle}
+#arc{transition:stroke-dasharray 1s cubic-bezier(.2,.8,.2,1),stroke .6s;stroke-linecap:round}
+.scan{opacity:0;transform-origin:120px 120px}
+.analyzing .scan{opacity:.7;animation:sp 1.2s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+.rt{font:600 21px var(--h);margin:14px 0 6px;letter-spacing:-.02em}
+.ds{color:var(--m);max-width:440px}
+.al{margin-top:16px;padding:12px 14px;border-left:3px solid var(--y);background:rgba(255,255,255,.04);border-radius:0 8px 8px 0;font-size:13px;transition:.3s}
+.rc{margin-top:16px;padding:9px 16px;border-radius:8px;border:1px solid #33506e;background:#0e1c2d;color:var(--t);font:500 13px 'IBM Plex Sans',sans-serif;cursor:pointer;transition:.2s}
+.rc:hover{border-color:var(--br)}
+.rc:disabled{color:var(--br);cursor:wait}
+.mets{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+.met{background:#0c1828;border:1px solid #1c2e44;border-radius:10px;padding:14px 15px}
+.met small{color:var(--m);font-size:12px}
+.met strong{display:block;font:600 24px var(--h);margin:4px 0 10px;letter-spacing:-.02em}
+.mb{height:4px;border-radius:4px;background:#1b2d43;overflow:hidden}
+.mb i{display:block;height:100%;width:0;background:linear-gradient(90deg,#2563eb,var(--br));transition:width 1s cubic-bezier(.2,.8,.2,1)}
+#chart{width:100%;height:auto;display:block;overflow:visible}
+.f{margin-bottom:18px}
+.f:last-child{margin-bottom:0}
+.fh{display:flex;justify-content:space-between;font-size:13px;margin-bottom:7px}
+.fh em{font-style:normal;color:var(--m);font-size:12px;margin-left:6px}
+.fh strong{font:600 13px var(--h)}
+.tr{height:8px;border-radius:8px;background:#1a2c42;overflow:hidden}
+.tr i{display:block;height:100%;width:0;border-radius:8px;transition:width 1s cubic-bezier(.2,.8,.2,1)}
+.ap{display:flex;justify-content:space-between;align-items:center;padding:11px 0;border-bottom:1px solid #1b2d43}
+.ap:last-of-type{border-bottom:0}
+.ai{display:flex;gap:12px;align-items:center}
+.ic{width:38px;height:38px;border-radius:10px;background:#12263b;display:grid;place-items:center;transition:.25s}
+.ic svg{width:20px;height:20px;fill:none;stroke:#7d93aa;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;transition:.25s}
+.ap.on .ic{background:rgba(74,163,255,.16);box-shadow:0 0 16px rgba(74,163,255,.25)}
+.ap.on .ic svg{stroke:var(--br)}
+.ap b{display:block;font-weight:500;font-size:13.5px}
+.ap small{color:var(--m);font-size:12px}
+.tg{width:42px;height:23px;border-radius:20px;background:#27394f;position:relative;cursor:pointer;transition:.25s;border:0}
+.tg:after{content:"";position:absolute;top:3px;left:3px;width:17px;height:17px;border-radius:50%;background:#9aabbd;transition:.25s}
+.tg.on{background:#1d5fae}
+.tg.on:after{left:22px;background:#fff}
+.sim{--lc:#34d399;transition:border-color .3s,box-shadow .3s}
+.sim.warn{--lc:#f5a524;border-color:rgba(245,165,36,.6);box-shadow:0 0 20px rgba(245,165,36,.12)}
+.sim.over{--lc:#ef5350;border-color:rgba(239,83,80,.8);box-shadow:0 0 22px rgba(239,83,80,.25);animation:od 1.2s ease-in-out infinite}
+@keyframes od{50%{box-shadow:0 0 34px rgba(239,83,80,.45)}}
+.hl{margin-top:16px;padding:13px 14px;background:#0c1828;border:1px solid #1c2e44;border-radius:9px;font-size:13px;color:var(--m);transition:.3s}
+.sim.warn .hl{background:rgba(245,165,36,.07);border-color:rgba(245,165,36,.45)}
+.sim.over .hl{background:rgba(239,83,80,.1);border-color:rgba(239,83,80,.6)}
+.sim.over .ap.on .ic{background:rgba(239,83,80,.16);box-shadow:0 0 16px rgba(239,83,80,.3)}
+.sim.over .ap.on .ic svg{stroke:var(--r)}
+.hr{display:flex;justify-content:space-between;align-items:baseline}
+.hl strong{color:var(--lc);font:600 18px var(--h);transition:color .3s}
+.hb{position:relative;height:6px;border-radius:6px;background:#1b2d43;margin:10px 0 8px}
+.hb i{display:block;height:100%;width:0;border-radius:6px;background:var(--lc);box-shadow:0 0 9px var(--lc);transition:width .5s,background .3s}
+.hb:after{content:"";position:absolute;left:80%;top:-4px;bottom:-4px;width:2px;border-radius:2px;background:#8397ad}
+.hm{display:flex;justify-content:space-between;gap:10px;font-size:12px}
+.hm span:first-child{color:var(--lc);font-weight:500}
+table{width:100%;border-collapse:collapse}
+th{text-align:left;color:var(--m);font-weight:500;font-size:12px;padding:0 4px 9px}
+td{border-top:1px solid #1b2d43;padding:11px 4px;font-size:13px;color:#b4c3d3}
+.bd{padding:3px 10px;border-radius:20px;font-size:11.5px;font-weight:600}
+.bd.h{background:rgba(239,83,80,.15);color:var(--r)}.bd.m{background:rgba(245,165,36,.15);color:var(--y)}.bd.l{background:rgba(52,211,153,.15);color:var(--g)}
+footer{text-align:center;color:#5d738a;font-size:12px;padding:34px 0 30px}
+#toasts{position:fixed;right:24px;bottom:24px;z-index:20;display:flex;flex-direction:column;gap:10px}
+.ts{padding:12px 16px;background:#0f1f33;border:1px solid #2a4560;border-left:3px solid var(--br);border-radius:9px;font-size:13px;box-shadow:0 14px 36px rgba(0,0,0,.45);animation:ti .3s ease both}
+.ts.warn{border-left-color:var(--y)}.ts.danger{border-left-color:var(--r)}
+.ts.out{opacity:0;transform:translateY(10px);transition:.3s}
+@keyframes ti{from{opacity:0;transform:translateY(12px)}}
+@media(max-width:1000px){.grid{grid-template-columns:1fr}}
+@media(max-width:700px){header{padding:12px 16px}.live span{display:none}main{padding:22px 14px 0}.hero{grid-template-columns:1fr;justify-items:center;text-align:center}.mets{grid-template-columns:1fr 1fr}.ds{margin:auto}.al{text-align:left}}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<canvas id="bg"></canvas>
+<div class="wrap">
+<header>
+  <div class="logo">
+    <svg viewBox="0 0 48 48" aria-hidden="true"><defs><linearGradient id="lg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#8cc6ff"/><stop offset="1" stop-color="#2563eb"/></linearGradient></defs><path d="M24 2.5l19 11v21L24 45.5 5 34.5v-21z" fill="#0d1d33" stroke="url(#lg)" stroke-width="2"/><path d="M5 24h7l3-6 4 12 3-9 2 3h5" fill="none" stroke="#4aa3ff" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" opacity=".55"/><path d="M27.5 9L15 26h8.5L21 39l13-18h-8.5z" fill="url(#lg)"/></svg>
+    <div><div class="wm">Blackout<b>IQ</b></div><div class="tag">Power outage intelligence</div></div>
+  </div>
+  <div class="live"><i></i><span>Simulation online</span></div>
+</header>
+<main>
+  <div class="intro"><h1>Regional power risk monitor</h1><p>Select a location to generate a simulated blackout probability from grid load, weather, outage history and peak demand.</p></div>
+  <div class="cities" id="cities"></div>
+  <div class="grid">
+    <div class="col">
+      <section class="panel hero" id="hero">
+        <svg class="gauge" viewBox="0 0 240 240" aria-label="Blackout probability gauge">
+          <g id="ticks"></g>
+          <circle class="scan" cx="120" cy="120" r="114" fill="none" stroke="#4aa3ff" stroke-width="1.5" stroke-dasharray="30 60"/>
+          <circle cx="120" cy="120" r="92" fill="none" stroke="#1a2c42" stroke-width="14" stroke-dasharray="433.5 578.05" transform="rotate(135 120 120)" stroke-linecap="round"/>
+          <circle id="arc" cx="120" cy="120" r="92" fill="none" stroke="#f5a524" stroke-width="14" stroke-dasharray="0 578.05" transform="rotate(135 120 120)"/>
+          <text id="score" x="120" y="128" fill="#fff" font-size="52" font-weight="600">0</text>
+          <text x="120" y="152" fill="#8397ad" font-size="12" font-family="IBM Plex Sans,sans-serif">percent probability</text>
+          <text id="status" x="120" y="214" font-size="13" font-weight="600">Moderate risk</text>
+        </svg>
+        <div>
+          <div class="city" id="cityName">Chennai</div>
+          <div class="reg" id="cityState">Tamil Nadu, India</div>
+          <div class="rt" id="rt">Moderate power risk</div>
+          <p class="ds" id="ds"></p>
+          <div class="al" id="al"></div>
+          <button class="rc" id="rc">Recalculate</button>
+        </div>
+      </section>
+      <section class="panel">
+        <div class="hd"><h3>Regional conditions</h3><span>Input data</span></div>
+        <div class="mets">
+          <div class="met"><small>Grid load</small><strong id="mLoad">–</strong><div class="mb"><i id="bLoad"></i></div></div>
+          <div class="met"><small>Temperature</small><strong id="mTemp">–</strong><div class="mb"><i id="bTemp"></i></div></div>
+          <div class="met"><small>Rainfall</small><strong id="mRain">–</strong><div class="mb"><i id="bRain"></i></div></div>
+          <div class="met"><small>Past outages</small><strong id="mOut">–</strong><div class="mb"><i id="bOut"></i></div></div>
+        </div>
+      </section>
+      <section class="panel">
+        <div class="hd"><h3>24-hour risk forecast</h3><span>Hover to inspect</span></div>
+        <svg id="chart" viewBox="0 0 640 230"></svg>
+      </section>
+    </div>
+    <div class="col">
+      <section class="panel">
+        <div class="hd"><h3>Risk factors</h3><span>Weighted contribution</span></div>
+        <div id="factors"></div>
+      </section>
+      <section class="panel sim" id="sim">
+        <div class="hd"><h3>Home load simulator</h3><span id="hTag">Optional</span></div>
+        <div id="aps"></div>
+        <div class="hl"><div class="hr"><span>Current simulated load</span><strong id="hLoad">0 W</strong></div><div class="hb"><i id="hBar"></i></div><div class="hm"><span id="hMsg">Switch on appliances to simulate demand</span><span>Limit 3000 W</span></div></div>
+      </section>
+      <section class="panel">
+        <div class="hd"><h3>Recent incidents</h3><span>Sample data</span></div>
+        <table><thead><tr><th>Date</th><th>Event</th><th>Duration</th><th>Severity</th></tr></thead><tbody>
+          <tr><td>03 Oct</td><td>Overload</td><td>18 min</td><td><span class="bd m">Medium</span></td></tr>
+          <tr><td>28 Sep</td><td>Heavy rain</td><td>42 min</td><td><span class="bd h">High</span></td></tr>
+          <tr><td>20 Sep</td><td>Maintenance</td><td>12 min</td><td><span class="bd l">Low</span></td></tr>
+        </tbody></table>
+      </section>
+    </div>
+  </div>
+  <footer>BlackoutIQ · Power outage prediction prototype · EEE project</footer>
+</main>
+</div>
+<div id="toasts"></div>
+<script>
+const L={Chennai:{s:"Tamil Nadu, India",load:82,temp:34,rain:18,out:4,peak:70,area:15},Coimbatore:{s:"Tamil Nadu, India",load:57,temp:29,rain:42,out:2,peak:45,area:8},Madurai:{s:"Tamil Nadu, India",load:86,temp:37,rain:8,out:6,peak:75,area:18},Trichy:{s:"Tamil Nadu, India",load:64,temp:35,rain:22,out:3,peak:55,area:10},Salem:{s:"Tamil Nadu, India",load:51,temp:31,rain:35,out:2,peak:42,area:7},Tirunelveli:{s:"Tamil Nadu, India",load:48,temp:32,rain:50,out:1,peak:40,area:5},Bengaluru:{s:"Karnataka, India",load:74,temp:27,rain:65,out:5,peak:68,area:14}};
+const $=i=>document.getElementById(i);
+let city="Chennai",home=0,cur=0,busy=false;
+const col=s=>s<35?"#34d399":s<70?"#f5a524":"#ef5350";
+function toast(m,k){const t=document.createElement("div");t.className="ts "+(k||"");t.textContent=m;$("toasts").appendChild(t);setTimeout(()=>{t.classList.add("out");setTimeout(()=>t.remove(),300)},2400)}
+function count(el,a,b,d=900){const t0=performance.now();(function f(t){const p=Math.min((t-t0)/d,1);el.textContent=Math.round(a+(b-a)*(1-Math.pow(1-p,3)));if(p<1)requestAnimationFrame(f)})(t0)}
+/* city buttons */
+Object.keys(L).forEach(c=>{const b=document.createElement("button");b.textContent=c;if(c===city)b.className="on";b.onclick=()=>{city=c;document.querySelectorAll("#cities button").forEach(x=>x.classList.toggle("on",x===b));toast(c+" selected");calc(true)};$("cities").appendChild(b)});
+/* gauge ticks */
+for(let i=0;i<=27;i++){const a=(135+i*10)*Math.PI/180,l=i%9?4:8;$("ticks").insertAdjacentHTML("beforeend",`<line x1="${120+106*Math.cos(a)}" y1="${120+106*Math.sin(a)}" x2="${120+(106+l)*Math.cos(a)}" y2="${120+(106+l)*Math.sin(a)}" stroke="#35506b" stroke-width="${i%9?1:1.6}"/>`)}
+/* factors */
+const FD=[["Grid load","40%"],["Weather","20%"],["Historical outages","15%"],["Peak demand","15%"]];
+$("factors").innerHTML=FD.map((f,i)=>`<div class="f"><div class="fh"><span>${f[0]}<em>weight ${f[1]}</em></span><strong id="fv${i}">0%</strong></div><div class="tr"><i id="fb${i}"></i></div></div>`).join("");
+/* appliances */
+const AP=[["Air conditioner",1500,'<path d="M12 3v18M4.5 7.5l15 9M4.5 16.5l15-9"/>'],["Water heater",2000,'<path d="M12 3c1 4 5 5 5 10a5 5 0 0 1-10 0c0-2 1-3 2-4 0 2 1 3 2 3 0-3-1-6 1-9z"/>'],["Fan",75,'<circle cx="12" cy="12" r="1.8"/><path d="M12 10c-1-4 0-7 3-7 2 0 2 3-3 7zM14 12c4-1 7 0 7 3 0 2-3 2-7-3zM12 14c1 4 0 7-3 7-2 0-2-3 3-7zM10 12c-4 1-7 0-7-3 0-2 3-2 7 3z"/>'],["Television",120,'<rect x="3" y="5" width="18" height="12" rx="2"/><path d="M8 21h8"/>']];
+$("aps").innerHTML=AP.map((a,i)=>`<div class="ap" id="ap${i}"><div class="ai"><div class="ic"><svg viewBox="0 0 24 24">${a[2]}</svg></div><div><b>${a[0]}</b><small>${a[1]} W</small></div></div><button class="tg" aria-label="Toggle ${a[0]}" onclick="tog(${i},this)"></button></div>`).join("");
+const LIM=3000;let lv="";
+function tog(i,b){
+  const on=b.classList.toggle("on");$("ap"+i).classList.toggle("on",on);
+  home+=on?AP[i][1]:-AP[i][1];$("hLoad").textContent=home+" W";
+  const l=home>LIM?"over":home>=LIM*.75?"warn":"ok";
+  $("sim").className="panel sim"+(l=="ok"?"":" "+l);
+  $("hBar").style.width=Math.min(home/(LIM*1.25)*100,100)+"%";
+  $("hTag").className=l=="over"?"bd h":l=="warn"?"bd m":"";
+  $("hTag").textContent=l=="over"?"Overload":l=="warn"?"Near limit":"Optional";
+  $("hMsg").textContent=l=="over"?"Overloaded by "+(home-LIM)+" W. Switch off heavy appliances.":l=="warn"?"Approaching the "+LIM+" W circuit limit":home?"Within safe limits":"Switch on appliances to simulate demand";
+  if(l=="over"&&lv!="over")toast("Overload: "+home+" W exceeds the "+LIM+" W limit","danger");
+  else if(l=="warn"&&lv!="warn")toast("Warning: approaching the circuit limit","warn");
+  else toast((on?"On: +":"Off: -")+AP[i][1]+" W · "+AP[i][0]);
+  lv=l;
+}
+/* prediction */
+function calc(anim){
+  const d=L[city];let w=0;
+  if(d.temp>=32)w+=15;if(d.temp>=35)w+=20;if(d.temp>=40)w+=15;if(d.rain>=20)w+=15;if(d.rain>=50)w+=20;w=Math.min(w,100);
+  const h=Math.min(d.out*8,100);
+  const s=Math.round(Math.max(0,Math.min(d.load*.4+w*.2+h*.15+d.peak*.15+d.area*.1,100)));
+  if(anim){if(busy)return;busy=true;$("rc").disabled=true;$("rc").textContent="Analyzing…";$("hero").classList.add("analyzing");setTimeout(()=>{render(d,w,h,s);busy=false;$("rc").disabled=false;$("rc").textContent="Recalculate";$("hero").classList.remove("analyzing");toast(city+" prediction updated")},800)}else render(d,w,h,s)
+}
+function render(d,w,h,s){
+  const c=col(s);
+  $("cityName").textContent=city;$("cityState").textContent=d.s;
+  $("mLoad").textContent=d.load+"%";$("mTemp").textContent=d.temp+"°C";$("mRain").textContent=d.rain+" mm";$("mOut").textContent=d.out;
+  $("bLoad").style.width=d.load+"%";$("bTemp").style.width=Math.min(d.temp/45*100,100)+"%";$("bRain").style.width=Math.min(d.rain/80*100,100)+"%";$("bOut").style.width=Math.min(d.out/8*100,100)+"%";
+  count($("score"),cur,s);cur=s;
+  $("arc").style.strokeDasharray=(s/100*433.5)+" 578.05";$("arc").style.stroke=c;$("arc").style.filter=`drop-shadow(0 0 7px ${c})`;
+  const st=$("status");st.setAttribute("fill",c);
+  const T=s<35?["Low risk","Low power risk",city+" currently shows relatively stable simulated grid conditions. The probability of a power interruption is low.","No major risk indicators detected in the current simulation."]:s<70?["Moderate risk","Moderate power risk",city+" has a moderate simulated possibility of a power interruption. Peak demand and environmental conditions may contribute to instability.","Monitor electricity usage during peak-demand periods."]:["High risk","High power risk",city+" currently has a high simulated blackout probability due to elevated grid and environmental risk factors.","High alert: reduce unnecessary heavy electrical loads."];
+  st.textContent=T[0];$("rt").textContent=T[1];$("ds").textContent=T[2];$("al").textContent=T[3];$("al").style.borderColor=c;
+  [d.load,w,h,d.peak].forEach((v,i)=>{$("fv"+i).textContent=v+"%";const b=$("fb"+i);b.style.width="0";b.style.background=col(v);setTimeout(()=>b.style.width=v+"%",80)});
+  chart(s);
+}
+/* forecast chart */
+function chart(s){
+  const H=["12 AM","2 AM","4 AM","6 AM","8 AM","10 AM","12 PM","2 PM","4 PM","6 PM","8 PM","10 PM"];
+  const V=H.map((_,i)=>Math.round(Math.max(10,Math.min(s+Math.sin(i*1.2)*10+(i>=8?15:0),98))));
+  const X=i=>44+i*(586-44)/11,Y=v=>12+(100-v)/100*176,P=V.map((v,i)=>[X(i),Y(v)]);
+  let d=`M${P[0]}`;for(let i=0;i<P.length-1;i++){const a=P[i-1]||P[i],b=P[i],c=P[i+1],e=P[i+2]||c;d+=`C${b[0]+(c[0]-a[0])/6},${b[1]+(c[1]-a[1])/6} ${c[0]-(e[0]-b[0])/6},${c[1]-(e[1]-b[1])/6} ${c}`}
+  const g=[0,25,50,75,100].map(v=>`<line x1="44" x2="586" y1="${Y(v)}" y2="${Y(v)}" stroke="#1d3047"/><text x="34" y="${Y(v)+4}" text-anchor="end" fill="#6b8198" font-size="11">${v}</text>`).join("");
+  const xl=H.map((t,i)=>i%2?"":`<text x="${X(i)}" y="214" text-anchor="middle" fill="#6b8198" font-size="11">${t}</text>`).join("");
+  $("chart").innerHTML=`<defs><linearGradient id="ar" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4aa3ff" stop-opacity=".4"/><stop offset="1" stop-color="#4aa3ff" stop-opacity="0"/></linearGradient></defs>${g}${xl}<line x1="44" x2="586" y1="${Y(70)}" y2="${Y(70)}" stroke="#ef5350" stroke-dasharray="5 5" opacity=".7"/><text x="586" y="${Y(70)-6}" text-anchor="end" fill="#ef5350" font-size="11">High-risk threshold</text><path d="${d}L${X(11)},${Y(0)}L${X(0)},${Y(0)}Z" fill="url(#ar)"/><path d="${d}" fill="none" stroke="#4aa3ff" stroke-width="2.5" pathLength="1" stroke-dasharray="1" stroke-dashoffset="1" style="filter:drop-shadow(0 0 5px rgba(74,163,255,.6))"><animate attributeName="stroke-dashoffset" from="1" to="0" dur="1s" fill="freeze"/></path><g id="hv" opacity="0"><line id="hl2" y1="12" y2="188" stroke="#4aa3ff" stroke-dasharray="3 3"/><circle id="hc" r="5" fill="#0b1522" stroke="#4aa3ff" stroke-width="2.5"/><rect id="hr" width="92" height="40" rx="7" fill="#0f1f33" stroke="#2a4560"/><text id="ht" fill="#e8eef6" font-size="12" font-weight="600"></text><text id="hs" fill="#8397ad" font-size="11"></text></g><rect x="44" y="0" width="542" height="200" fill="transparent" id="hz"/>`;
+  const z=$("hz");z.onmousemove=e=>{const r=$("chart").getBoundingClientRect(),x=(e.clientX-r.left)/r.width*640,i=Math.max(0,Math.min(11,Math.round((x-44)/((586-44)/11)))),px=X(i),py=Y(V[i]),bx=px>480?px-102:px+10;
+    $("hv").setAttribute("opacity",1);$("hl2").setAttribute("x1",px);$("hl2").setAttribute("x2",px);$("hc").setAttribute("cx",px);$("hc").setAttribute("cy",py);$("hr").setAttribute("x",bx);$("hr").setAttribute("y",Math.max(py-48,4));
+    $("ht").setAttribute("x",bx+10);$("ht").setAttribute("y",Math.max(py-48,4)+17);$("ht").textContent=V[i]+"% risk";$("hs").setAttribute("x",bx+10);$("hs").setAttribute("y",Math.max(py-48,4)+32);$("hs").textContent=H[i]};
+  z.onmouseleave=()=>$("hv").setAttribute("opacity",0);
+}
+$("rc").onclick=()=>calc(true);
+/* grid network background */
+(function(){
+  const cv=$("bg"),x=cv.getContext("2d");let W,Hh,N=[],Pu=[];
+  const reduce=matchMedia("(prefers-reduced-motion:reduce)").matches;
+  function init(){const r=devicePixelRatio||1;W=innerWidth;Hh=innerHeight;cv.width=W*r;cv.height=Hh*r;x.setTransform(r,0,0,r,0,0);
+    N=Array.from({length:Math.round(W*Hh/24000)},()=>({x:Math.random()*W,y:Math.random()*Hh,vx:(Math.random()-.5)*.15,vy:(Math.random()-.5)*.15}));Pu=[]}
+  function draw(){x.clearRect(0,0,W,Hh);
+    const g=x.createRadialGradient(W*.75,0,0,W*.75,0,W*.7);g.addColorStop(0,"rgba(74,163,255,.14)");g.addColorStop(1,"transparent");x.fillStyle=g;x.fillRect(0,0,W,Hh);
+    const E=[];N.forEach((n,i)=>{if(!reduce){n.x+=n.vx;n.y+=n.vy;if(n.x<0||n.x>W)n.vx*=-1;if(n.y<0||n.y>Hh)n.vy*=-1}
+      for(let j=i+1;j<N.length;j++){const m=N[j],dd=Math.hypot(n.x-m.x,n.y-m.y);if(dd<170){E.push([n,m]);x.strokeStyle=`rgba(74,163,255,${.13*(1-dd/170)})`;x.beginPath();x.moveTo(n.x,n.y);x.lineTo(m.x,m.y);x.stroke()}}
+      x.fillStyle="rgba(140,198,255,.35)";x.beginPath();x.arc(n.x,n.y,1.8,0,7);x.fill()});
+    if(!reduce&&E.length&&Math.random()<.05)Pu.push({e:E[Math.floor(Math.random()*E.length)],t:0});
+    Pu=Pu.filter(p=>{p.t+=.015;if(p.t>=1)return false;const[a,b]=p.e,px=a.x+(b.x-a.x)*p.t,py=a.y+(b.y-a.y)*p.t;x.fillStyle="rgba(245,165,36,.9)";x.shadowColor="#f5a524";x.shadowBlur=10;x.beginPath();x.arc(px,py,2.2,0,7);x.fill();x.shadowBlur=0;return true});
+    if(!reduce)requestAnimationFrame(draw)}
+  addEventListener("resize",()=>{init();if(reduce)draw()});init();draw();
+})();
+calc();
+</script>
+</body>
+</html>
